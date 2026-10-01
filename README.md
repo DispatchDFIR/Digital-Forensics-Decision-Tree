@@ -20,6 +20,11 @@ A static site (GitHub Pages) backed by Firebase Firestore, with two parts:
   changes save for everyone straight away. Questions branch into Yes/No;
   an Action can continue to another box with **↓ Next step** (a plain
   arrow with no Yes/No).
+- **Moving boxes**: drag a box to reposition it (hold **Shift** while
+  dragging to bring everything below it along). Its arrows follow. **⟲** on a
+  moved box puts it back; **Auto-arrange** resets every box. On the official
+  trees only the admin can move boxes; in a mind map anyone with the code can.
+  Positions are saved, so everyone sees the same layout.
 - **Mind maps**: open the **Mind Maps** tab, create a map, then use
   **Copy invite link** to share it. Click a box's text to edit it,
   **+ Child** to branch, the dashed **+ label** pill to label a connection,
@@ -86,6 +91,7 @@ number so visitors don't get a mix of old and new files.
 - `js/firebase.js`: Firebase config and admin email
 - `js/official-trees.js`: starter content for each official tree (used until
   the admin first saves that tree)
+- `js/diagram.js`: layout, arrows, and box dragging (shared by both tabs)
 - `js/decision-trees.js`: official tree viewer/editor
 - `js/mind-maps.js`: collaborative mind maps and share codes
 - `js/shared.js`: drag-to-pan and other helpers

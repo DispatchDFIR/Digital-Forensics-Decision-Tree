@@ -1,14 +1,15 @@
-import { db, doc, setDoc, onSnapshot, serverTimestamp } from './firebase.js?v=3';
-import { TREES, findTree } from './official-trees.js?v=3';
+import { db, doc, setDoc, onSnapshot, serverTimestamp } from './firebase.js?v=4';
+import { TREES, findTree } from './official-trees.js?v=4';
+import { createDiagram, clearPositions, nudge } from './diagram.js?v=4';
 import {
   uid, el, button, editableText, isEditingInside, setStatus,
-  enableCanvas, connector, centreOnRoot, downloadJson, readJsonFile
-} from './shared.js?v=3';
+  enableCanvas, downloadJson, readJsonFile
+} from './shared.js?v=4';
 
 const LAST_TREE_KEY = 'dt_last_tree';
 
 const canvas = document.getElementById('dt-canvas');
-const treeRoot = document.getElementById('dt-tree');
+const stage = document.getElementById('dt-tree');
 const select = document.getElementById('dt-select');
 const modePill = document.getElementById('dt-mode');
 
@@ -18,6 +19,7 @@ let isAdmin = false;
 let unsubscribe = null;
 let saveTimer = null;
 let needsCentre = false;
+let diagram = null;
 
 export function initDecisionTrees() {
   const groups = new Map();
@@ -46,6 +48,13 @@ export function initDecisionTrees() {
     save();
     render();
   });
+  document.getElementById('dt-arrange').addEventListener('click', () => {
+    if (!isAdmin || !tree) return;
+    if (!confirm('Put every box back in its automatic position? This is saved for everyone.')) return;
+    clearPositions(tree, childrenOf);
+    save();
+    render();
+  });
   document.getElementById('dt-import').addEventListener('change', async (e) => {
     const file = e.target.files[0];
     e.target.value = '';
@@ -62,7 +71,16 @@ export function initDecisionTrees() {
     }
   });
 
-  enableCanvas(canvas, treeRoot, document.getElementById('dt-zoom'));
+  const zoom = enableCanvas(canvas, stage, document.getElementById('dt-zoom'));
+  diagram = createDiagram({
+    canvas, stage, zoom, childrenOf,
+    renderBox: (spec) => (spec.node ? renderNode(spec.node, spec.parentNode, spec.slot) : renderEmptySlot(spec.parentNode, spec.slot)),
+    canDrag: () => isAdmin,
+    onMove: (nodes, dx, dy) => {
+      for (const n of nodes) nudge(n, dx, dy);
+      save();
+    }
+  });
 
   let initial = null;
   try { initial = localStorage.getItem(LAST_TREE_KEY); } catch {}
@@ -76,10 +94,23 @@ export function setAdmin(value) {
 }
 
 export function refreshLayout() {
-  if (needsCentre && tree) {
-    centreOnRoot(canvas);
-    needsCentre = canvas.clientWidth === 0;
+  diagram.refresh();
+  if (needsCentre && tree) needsCentre = !diagram.centre();
+}
+
+// Questions branch to Yes/No; an action can continue to one `next` box via a plain arrow.
+function childrenOf(node) {
+  if (node.type === 'question') {
+    return ['yes', 'no'].map((slot) => ({
+      node: node[slot] || null,
+      kind: slot,
+      label: el('div', `edge-label ${slot}`, slot === 'yes' ? 'Yes' : 'No'),
+      parentNode: node,
+      slot
+    }));
   }
+  if (node.next) return [{ node: node.next, kind: 'next', label: null, parentNode: node, slot: 'next' }];
+  return [];
 }
 
 function selectTree(id) {
@@ -96,7 +127,7 @@ function selectTree(id) {
     if (id !== currentId) return;
     // Our own unsent writes echo back immediately; the UI already reflects them.
     if (snap.metadata.hasPendingWrites) return;
-    if (isEditingInside(canvas)) return;
+    if (isEditingInside(canvas) || diagram.isDragging()) return;
     tree = snap.exists() ? snap.data().tree : findTree(id).starter();
     render();
   }, (err) => {
@@ -125,64 +156,36 @@ function save() {
 function render() {
   modePill.textContent = isAdmin ? 'Editing' : 'View only';
   modePill.classList.toggle('editing', isAdmin);
-
-  const left = canvas.scrollLeft;
-  const top = canvas.scrollTop;
-  treeRoot.innerHTML = '';
   if (!tree) {
-    treeRoot.appendChild(el('p', 'loading', 'Loading…'));
+    diagram.clear('Loading…');
     return;
   }
-  const ul = el('ul', 'root');
-  ul.appendChild(renderBranch(tree, null, null, null));
-  treeRoot.appendChild(ul);
-
-  if (needsCentre) {
-    centreOnRoot(canvas);
-    canvas.scrollTop = 0;
-    needsCentre = canvas.clientWidth === 0;
-  } else {
-    canvas.scrollLeft = left;
-    canvas.scrollTop = top;
-  }
-}
-
-// Questions branch to Yes/No; an action can continue to one `next` box via a plain (neutral) arrow.
-function renderBranch(node, branch, parent, slot) {
-  const li = el('li');
-  if (branch === 'next') li.appendChild(connector('neutral'));
-  else if (branch) li.appendChild(connector(branch, el('div', `edge-label ${branch}`, branch === 'yes' ? 'Yes' : 'No')));
-
-  if (!node) {
-    li.appendChild(renderEmptySlot(parent, slot));
-    return li;
-  }
-
-  li.appendChild(renderNode(node, parent, slot));
-  if (node.type === 'question') {
-    const kids = el('ul', 'children');
-    kids.appendChild(renderBranch(node.yes, 'yes', node, 'yes'));
-    kids.appendChild(renderBranch(node.no, 'no', node, 'no'));
-    li.appendChild(kids);
-  } else if (node.next) {
-    const kids = el('ul', 'children');
-    kids.appendChild(renderBranch(node.next, 'next', node, 'next'));
-    li.appendChild(kids);
-  }
-  return li;
+  diagram.render(tree);
+  if (needsCentre) needsCentre = !diagram.centre();
 }
 
 function renderNode(node, parent, slot) {
   const box = el('div', `node ${node.type}`);
   const head = el('div', 'node-head');
   head.appendChild(el('span', null, node.type === 'question' ? 'Question' : 'Action'));
-  if (isAdmin && parent) {
-    head.appendChild(button('✕', 'icon-btn', () => {
-      if (!confirm('Delete this box and everything below it?')) return;
-      parent[slot] = null;
-      save();
-      render();
-    }, 'Delete this box and everything below it'));
+  if (isAdmin) {
+    const tools = el('span', 'head-tools');
+    if (node.pos) {
+      tools.appendChild(button('⟲', 'icon-btn', () => {
+        delete node.pos;
+        save();
+        render();
+      }, 'Put this box back in its automatic position'));
+    }
+    if (parent) {
+      tools.appendChild(button('✕', 'icon-btn danger', () => {
+        if (!confirm('Delete this box and everything below it?')) return;
+        parent[slot] = null;
+        save();
+        render();
+      }, 'Delete this box and everything below it'));
+    }
+    head.appendChild(tools);
   }
   box.appendChild(head);
 

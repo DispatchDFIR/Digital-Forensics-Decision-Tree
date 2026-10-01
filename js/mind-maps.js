@@ -1,8 +1,9 @@
-import { db, doc, setDoc, onSnapshot, serverTimestamp, runTransaction } from './firebase.js?v=3';
+import { db, doc, setDoc, onSnapshot, serverTimestamp, runTransaction } from './firebase.js?v=4';
+import { createDiagram, clearPositions, nudge } from './diagram.js?v=4';
 import {
   uid, el, button, editableText, isEditingInside, setStatus,
-  enableCanvas, connector, centreOnRoot, downloadJson, readJsonFile
-} from './shared.js?v=3';
+  enableCanvas, downloadJson, readJsonFile
+} from './shared.js?v=4';
 
 const RECENT_KEY = 'mm_recent';
 const CODE_ALPHABET = 'abcdefghjkmnpqrstuvwxyz23456789';
@@ -11,7 +12,7 @@ const CODE_LENGTH = 10;
 const home = document.getElementById('mm-home');
 const workspace = document.getElementById('mm-workspace');
 const canvas = document.getElementById('mm-canvas');
-const treeRoot = document.getElementById('mm-tree');
+const stage = document.getElementById('mm-tree');
 const titleSlot = document.getElementById('mm-title-slot');
 const codeLabel = document.getElementById('mm-code');
 const joinError = document.getElementById('mm-join-error');
@@ -22,6 +23,9 @@ let pending = null;    // remote update deferred while the user is typing
 let unsubscribe = null;
 let needsCentre = false;
 let focusAfterRender = null;
+let diagram = null;
+
+const subNodes = (n) => (n.children || []).map((c) => ({ node: c }));
 
 export function initMindMaps() {
   document.getElementById('mm-create-form').addEventListener('submit', async (e) => {
@@ -83,17 +87,39 @@ export function initMindMaps() {
     }
   });
 
-  workspace.addEventListener('focusout', () => {
-    setTimeout(() => {
-      if (pending && !isEditingInside(workspace)) {
-        state = pending;
-        pending = null;
-        render();
-      }
-    }, 0);
+  document.getElementById('mm-arrange').addEventListener('click', () => {
+    if (!state) return;
+    if (!confirm('Put every box back in its automatic position? Everyone with the code will see the change.')) return;
+    mutate((s) => clearPositions(s.tree, subNodes));
   });
 
-  enableCanvas(canvas, treeRoot, document.getElementById('mm-zoom'));
+  // Apply remote changes that arrived while this user was typing or dragging.
+  const applyPending = () => setTimeout(() => {
+    if (pending && !isEditingInside(workspace) && !diagram.isDragging()) {
+      state = pending;
+      pending = null;
+      render();
+    }
+  }, 0);
+  workspace.addEventListener('focusout', applyPending);
+  canvas.addEventListener('pointerup', applyPending);
+
+  const zoom = enableCanvas(canvas, stage, document.getElementById('mm-zoom'));
+  diagram = createDiagram({
+    canvas, stage, zoom,
+    childrenOf: (node) => node.children.map((c) => ({ node: c, kind: 'custom', label: renderLabel(c) })),
+    renderBox: (spec) => renderBox(spec.node),
+    canDrag: () => !!state,
+    onMove: (nodes, dx, dy) => {
+      const ids = nodes.map((n) => n.id);
+      mutate((s) => {
+        for (const id of ids) {
+          const n = findNode(s.tree, id);
+          if (n) nudge(n, dx, dy);
+        }
+      }, { rerender: false });
+    }
+  });
   renderRecent();
 }
 
@@ -122,7 +148,7 @@ export function openMap(newCode) {
     const data = snap.data();
     const next = { name: data.name || 'Untitled mind map', tree: data.tree };
     rememberRecent(openedCode, next.name);
-    if (isEditingInside(workspace)) {
+    if (isEditingInside(workspace) || diagram.isDragging()) {
       pending = next;
       return;
     }
@@ -138,10 +164,8 @@ export function openMap(newCode) {
 }
 
 export function refreshLayout() {
-  if (needsCentre && state) {
-    centreOnRoot(canvas);
-    needsCentre = canvas.clientWidth === 0;
-  }
+  diagram.refresh();
+  if (needsCentre && state) needsCentre = !diagram.centre();
 }
 
 function closeMap() {
@@ -211,49 +235,42 @@ function render() {
     }));
   }
 
-  const left = canvas.scrollLeft;
-  const top = canvas.scrollTop;
-  treeRoot.innerHTML = '';
   if (!state) {
-    treeRoot.appendChild(el('p', 'loading', 'Loading…'));
+    diagram.clear('Loading…');
     return;
   }
-  const ul = el('ul', 'root');
-  ul.appendChild(renderBranch(state.tree, true));
-  treeRoot.appendChild(ul);
-
-  if (needsCentre) {
-    centreOnRoot(canvas);
-    canvas.scrollTop = 0;
-    needsCentre = canvas.clientWidth === 0;
-  } else {
-    canvas.scrollLeft = left;
-    canvas.scrollTop = top;
-  }
+  diagram.render(state.tree);
+  if (needsCentre) needsCentre = !diagram.centre();
 
   if (focusAfterRender) {
-    const target = treeRoot.querySelector(`[data-node-id="${focusAfterRender}"] .node-text`);
+    const target = stage.querySelector(`[data-node-id="${focusAfterRender}"] .node-text`);
     focusAfterRender = null;
     if (target) target.focus();
   }
 }
 
-function renderBranch(node, isRoot) {
-  const li = el('li');
+function renderLabel(node) {
   const id = node.id;
+  return editableText('edge-label custom', node.label, '+ label', true, (value) => {
+    mutate((s) => { const n = findNode(s.tree, id); if (n) n.label = value.slice(0, 80); }, { rerender: false });
+  });
+}
 
-  if (!isRoot) {
-    li.appendChild(connector('custom', editableText('edge-label custom', node.label, '+ label', true, (value) => {
-      mutate((s) => { const n = findNode(s.tree, id); if (n) n.label = value.slice(0, 80); }, { rerender: false });
-    })));
-  }
-
+function renderBox(node) {
+  const id = node.id;
+  const isRoot = id === state.tree.id;
   const box = el('div', isRoot ? 'node topic central' : 'node topic');
   box.dataset.nodeId = id;
   const head = el('div', 'node-head');
   head.appendChild(el('span', null, isRoot ? 'Central topic' : 'Topic'));
+  const tools = el('span', 'head-tools');
+  if (node.pos) {
+    tools.appendChild(button('⟲', 'icon-btn', () => {
+      mutate((s) => { const n = findNode(s.tree, id); if (n) delete n.pos; });
+    }, 'Put this box back in its automatic position'));
+  }
   if (!isRoot) {
-    head.appendChild(button('✕', 'icon-btn', () => {
+    tools.appendChild(button('✕', 'icon-btn danger', () => {
       if (node.children.length && !confirm('Delete this box and everything below it?')) return;
       mutate((s) => {
         const parent = findParent(s.tree, id);
@@ -261,6 +278,7 @@ function renderBranch(node, isRoot) {
       });
     }, 'Delete this box and everything below it'));
   }
+  head.appendChild(tools);
   box.appendChild(head);
 
   box.appendChild(editableText('node-text', node.text, 'Type here…', true, (value) => {
@@ -277,14 +295,7 @@ function renderBranch(node, isRoot) {
     });
   }, 'Add a branch below this box'));
   box.appendChild(controls);
-  li.appendChild(box);
-
-  if (node.children && node.children.length) {
-    const kids = el('ul', 'children');
-    for (const child of node.children) kids.appendChild(renderBranch(child, false));
-    li.appendChild(kids);
-  }
-  return li;
+  return box;
 }
 
 function generateCode() {

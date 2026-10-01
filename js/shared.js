@@ -50,16 +50,6 @@ export function setStatus(text, ok) {
   s.classList.toggle('ok', !!ok);
 }
 
-// Arrow from the branch rail down to a child box, with an optional label sitting on the line.
-export function connector(variant, label) {
-  const c = el('div', `connector ${variant || ''}`);
-  c.appendChild(el('span', 'seg'));
-  if (label) c.appendChild(label);
-  c.appendChild(el('span', 'seg'));
-  c.appendChild(el('span', 'arrow'));
-  return c;
-}
-
 const MIN_ZOOM = 0.25;
 const MAX_ZOOM = 2;
 
@@ -87,7 +77,7 @@ export function enableCanvas(canvas, stage, controls) {
   }
 
   function fit() {
-    const content = stage.querySelector('ul.root');
+    const content = stage.querySelector('.content-box');
     if (!content) return;
     const c = canvas.getBoundingClientRect();
     const r = content.getBoundingClientRect();
@@ -164,16 +154,7 @@ export function enableCanvas(canvas, stage, controls) {
   canvas.addEventListener('pointerup', end);
   canvas.addEventListener('pointercancel', end);
 
-  return { fit, reset: () => setScale(1) };
-}
-
-// Centre the root box horizontally the first time a tree is shown.
-export function centreOnRoot(container) {
-  const root = container.querySelector('.node');
-  if (!root) return;
-  const c = container.getBoundingClientRect();
-  const r = root.getBoundingClientRect();
-  container.scrollLeft += (r.left + r.width / 2) - (c.left + c.width / 2);
+  return { fit, reset: () => setScale(1), getScale: () => scale };
 }
 
 export function downloadJson(data, filename) {

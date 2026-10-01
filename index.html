@@ -6,7 +6,7 @@
 <meta name="robots" content="noindex, nofollow">
 <title>DFIR Decision Trees</title>
 <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🔍</text></svg>">
-<link rel="stylesheet" href="style.css?v=3">
+<link rel="stylesheet" href="style.css?v=4">
 </head>
 <body>
 <header class="topbar">
@@ -32,9 +32,10 @@
     <span id="dt-mode" class="mode-pill">View only</span>
     <button type="button" id="dt-export">Export JSON</button>
     <label class="file-btn admin-only">Import JSON<input type="file" id="dt-import" accept="application/json,.json" hidden></label>
+    <button type="button" id="dt-arrange" class="admin-only" title="Put every box back in its automatic position">Auto-arrange</button>
     <button type="button" id="dt-reset" class="admin-only">Reset to starter</button>
     <button type="button" id="dt-print">Print / PDF</button>
-    <span class="hint">Drag empty space to move · Ctrl/⌘ + scroll or pinch to zoom</span>
+    <span class="hint">Drag empty space to move around · Ctrl/⌘ + scroll or pinch to zoom<span class="admin-only-inline"> · Drag a box to reposition it (hold Shift to bring its branch)</span></span>
   </div>
   <div class="canvas-wrap">
     <div id="dt-canvas" class="canvas"><div id="dt-tree" class="tree"></div></div>
@@ -80,7 +81,9 @@
       <button type="button" id="mm-copy-link" class="primary">Copy invite link</button>
       <button type="button" id="mm-export">Export JSON</button>
       <label class="file-btn">Import JSON<input type="file" id="mm-import" accept="application/json,.json" hidden></label>
+      <button type="button" id="mm-arrange" title="Put every box back in its automatic position">Auto-arrange</button>
       <button type="button" id="mm-print">Print / PDF</button>
+      <span class="hint">Drag a box to reposition it (hold Shift to bring its branch)</span>
     </div>
     <div class="canvas-wrap">
       <div id="mm-canvas" class="canvas"><div id="mm-tree" class="tree"></div></div>
@@ -108,6 +111,6 @@
   </form>
 </dialog>
 
-<script type="module" src="js/main.js?v=3"></script>
+<script type="module" src="js/main.js?v=4"></script>
 </body>
 </html>

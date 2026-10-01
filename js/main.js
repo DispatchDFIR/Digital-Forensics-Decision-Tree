@@ -1,6 +1,6 @@
-import { auth, ADMIN_EMAIL, signInWithEmailAndPassword, onAuthStateChanged, signOut } from './firebase.js?v=3';
-import { initDecisionTrees, setAdmin, refreshLayout as refreshTrees } from './decision-trees.js?v=3';
-import { initMindMaps, openMap, parseCodeFromUrl, refreshLayout as refreshMaps } from './mind-maps.js?v=3';
+import { auth, ADMIN_EMAIL, signInWithEmailAndPassword, onAuthStateChanged, signOut } from './firebase.js?v=4';
+import { initDecisionTrees, setAdmin, refreshLayout as refreshTrees } from './decision-trees.js?v=4';
+import { initMindMaps, openMap, parseCodeFromUrl, refreshLayout as refreshMaps } from './mind-maps.js?v=4';
 
 const TAB_KEY = 'last_tab';
 

@@ -122,6 +122,8 @@ select { padding-right: 28px; max-width: 100%; }
 
 .admin-only { display: none !important; }
 body.is-admin .admin-only { display: inline-block !important; }
+.admin-only-inline { display: none; }
+body.is-admin .admin-only-inline { display: inline; }
 
 /* ---------- Views ---------- */
 .view { flex: 1; min-height: 0; display: flex; flex-direction: column; }
@@ -160,60 +162,29 @@ body.is-admin .admin-only { display: inline-block !important; }
 }
 .canvas.panning { cursor: grabbing; user-select: none; }
 
-/* ---------- Tree layout ---------- */
-.tree {
-  display: inline-flex;
-  justify-content: center;
-  min-width: 100%;
-  padding: 40px 40vw 40vh;
-}
-.tree ul { list-style: none; margin: 0; padding: 0; display: flex; justify-content: center; }
-.tree li { display: flex; flex-direction: column; align-items: center; position: relative; }
+/* ---------- Diagram (boxes are positioned by js/diagram.js) ---------- */
+.tree { position: relative; }
+.tree .loading { padding: 40px; }
+.placed { position: absolute; z-index: 1; }
+.content-box { position: absolute; pointer-events: none; }
 
-.tree ul.children { position: relative; padding-top: var(--gap); }
-.tree ul.children > li { padding: 0 12px; }
+svg.links { position: absolute; left: 0; top: 0; overflow: visible; pointer-events: none; }
+svg.links path { fill: none; stroke-width: 2; stroke: var(--line); }
+svg.links path.link.yes { stroke: var(--yes); }
+svg.links path.link.no { stroke: var(--no); }
+svg.links .arrowhead { stroke: none; fill: var(--line); }
+svg.links .arrowhead.yes { fill: var(--yes); }
+svg.links .arrowhead.no { fill: var(--no); }
 
-/* stem down from the parent box */
-.tree ul.children::before {
-  content: "";
-  position: absolute;
-  top: 0; left: 50%;
-  height: var(--gap);
-  border-left: 2px solid var(--line);
-  margin-left: -1px;
-}
-/* horizontal rail joining siblings */
-.tree ul.children > li::before {
-  content: "";
-  position: absolute;
-  top: 0; left: 0; right: 0;
-  border-top: 2px solid var(--line);
-}
-.tree ul.children > li:first-child::before { left: 50%; }
-.tree ul.children > li:last-child::before { right: 50%; }
-.tree ul.children > li:only-child::before { display: none; }
+body.is-admin #view-trees .node.movable .node-head,
+#view-maps .node.movable .node-head { cursor: grab; }
+.node.dragging { cursor: grabbing; box-shadow: 0 8px 22px rgba(0,0,0,.22); z-index: 5; opacity: .95; }
+.head-tools { display: inline-flex; gap: 4px; align-items: center; }
 
-/* arrow from the rail down to each child, with the label sitting on the line */
-.connector {
-  --edge: var(--line);
-  align-self: stretch;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  min-height: 64px;
-}
-.connector.yes { --edge: var(--yes); }
-.connector.no { --edge: var(--no); }
-.connector.neutral { min-height: 40px; }
-.connector .seg { flex: 1 0 10px; width: 2px; background: var(--edge); }
-.connector .arrow {
-  width: 0; height: 0;
-  border-left: 6px solid transparent;
-  border-right: 6px solid transparent;
-  border-top: 9px solid var(--edge);
-}
+.placed-label { position: absolute; z-index: 2; transform: translate(-50%, -50%); }
 
 .edge-label {
+  --edge: var(--line);
   font-size: 11px;
   font-weight: 700;
   padding: 3px 11px;
@@ -226,8 +197,8 @@ body.is-admin .admin-only { display: inline-block !important; }
   box-shadow: 0 1px 2px rgba(0,0,0,.08);
 }
 .edge-label.yes, .edge-label.no { text-transform: uppercase; letter-spacing: .05em; padding: 3px 13px; }
-.edge-label.yes { color: #fff; background: var(--yes); }
-.edge-label.no { color: #fff; background: var(--no); }
+.edge-label.yes { --edge: var(--yes); color: #fff; background: var(--yes); }
+.edge-label.no { --edge: var(--no); color: #fff; background: var(--no); }
 .edge-label.custom { color: var(--topic); border-color: var(--topic); background: var(--topic-bg); outline: none; cursor: text; min-width: 24px; }
 .edge-label.custom:focus { box-shadow: 0 0 0 2px var(--accent); }
 .edge-label.custom:empty { border-style: dashed; color: var(--muted); font-weight: 500; background: var(--panel); opacity: .6; }
@@ -303,7 +274,8 @@ body.is-admin .admin-only { display: inline-block !important; }
 .node-controls .ghost { color: var(--muted); background: transparent; }
 
 .icon-btn { background: none; border: none; color: var(--muted); padding: 0 3px; font-size: 13px; line-height: 1; }
-.icon-btn:hover { color: var(--no); }
+.icon-btn:hover { color: var(--accent); }
+.icon-btn.danger:hover { color: var(--no); }
 
 .loading { color: var(--muted); }
 

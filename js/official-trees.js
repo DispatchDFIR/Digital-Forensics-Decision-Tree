@@ -1,4 +1,4 @@
-import { uid } from './shared.js?v=3';
+import { uid } from './shared.js?v=4';
 
 // Starter content shown until the admin saves a tree to Firestore for the first time.
 const q = (text, yes = null, no = null) => ({ id: uid(), type: 'question', text, yes, no });
