@@ -1,8 +1,8 @@
-import { db, doc, setDoc, onSnapshot, serverTimestamp, runTransaction } from './firebase.js';
+import { db, doc, setDoc, onSnapshot, serverTimestamp, runTransaction } from './firebase.js?v=3';
 import {
   uid, el, button, editableText, isEditingInside, setStatus,
-  enablePan, centreOnRoot, downloadJson, readJsonFile
-} from './shared.js';
+  enableCanvas, connector, centreOnRoot, downloadJson, readJsonFile
+} from './shared.js?v=3';
 
 const RECENT_KEY = 'mm_recent';
 const CODE_ALPHABET = 'abcdefghjkmnpqrstuvwxyz23456789';
@@ -93,7 +93,7 @@ export function initMindMaps() {
     }, 0);
   });
 
-  enablePan(canvas);
+  enableCanvas(canvas, treeRoot, document.getElementById('mm-zoom'));
   renderRecent();
 }
 
@@ -243,9 +243,9 @@ function renderBranch(node, isRoot) {
   const id = node.id;
 
   if (!isRoot) {
-    li.appendChild(editableText('edge-label custom', node.label, '+ label', true, (value) => {
+    li.appendChild(connector('custom', editableText('edge-label custom', node.label, '+ label', true, (value) => {
       mutate((s) => { const n = findNode(s.tree, id); if (n) n.label = value.slice(0, 80); }, { rerender: false });
-    }));
+    })));
   }
 
   const box = el('div', isRoot ? 'node topic central' : 'node topic');

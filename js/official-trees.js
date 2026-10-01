@@ -1,8 +1,8 @@
-import { uid } from './shared.js';
+import { uid } from './shared.js?v=3';
 
 // Starter content shown until the admin saves a tree to Firestore for the first time.
 const q = (text, yes = null, no = null) => ({ id: uid(), type: 'question', text, yes, no });
-const a = (text) => ({ id: uid(), type: 'action', text });
+const a = (text, next = null) => (next ? { id: uid(), type: 'action', text, next } : { id: uid(), type: 'action', text });
 
 const GENERAL = 'General';
 const MITRE = 'MITRE ATT&CK Tactics';
@@ -22,7 +22,9 @@ export const TREES = [
         q('Is it a mobile phone or tablet?',
           a('Do NOT power it on. Record make/model/IMEI, place it in a Faraday bag, and proceed to extraction (logical / file system / physical) per lab SOP.'),
           q('Will imaging be performed on-site?',
-            a('Use a hardware write-blocker, create a forensic image (E01/raw), verify with SHA-256, and record the hash in the chain-of-custody log.'),
+            a('Connect the media through a hardware write-blocker and create a forensic image (E01/raw).',
+              a('Verify the image with SHA-256 and confirm it matches the source hash.',
+                a('Record both hashes, tool versions and times in the chain-of-custody log.'))),
             a('Label, bag and seal the media with tamper-evident packaging, complete chain-of-custody, and transport to the lab for imaging.')))),
       a('Stop. Secure the scene and prevent changes, but do not examine or collect until legal authority is obtained.'))
   },

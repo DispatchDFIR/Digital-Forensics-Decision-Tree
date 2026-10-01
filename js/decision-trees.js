@@ -1,9 +1,9 @@
-import { db, doc, setDoc, onSnapshot, serverTimestamp } from './firebase.js';
-import { TREES, findTree } from './official-trees.js';
+import { db, doc, setDoc, onSnapshot, serverTimestamp } from './firebase.js?v=3';
+import { TREES, findTree } from './official-trees.js?v=3';
 import {
   uid, el, button, editableText, isEditingInside, setStatus,
-  enablePan, centreOnRoot, downloadJson, readJsonFile
-} from './shared.js';
+  enableCanvas, connector, centreOnRoot, downloadJson, readJsonFile
+} from './shared.js?v=3';
 
 const LAST_TREE_KEY = 'dt_last_tree';
 
@@ -62,7 +62,7 @@ export function initDecisionTrees() {
     }
   });
 
-  enablePan(canvas);
+  enableCanvas(canvas, treeRoot, document.getElementById('dt-zoom'));
 
   let initial = null;
   try { initial = localStorage.getItem(LAST_TREE_KEY); } catch {}
@@ -147,9 +147,11 @@ function render() {
   }
 }
 
+// Questions branch to Yes/No; an action can continue to one `next` box via a plain (neutral) arrow.
 function renderBranch(node, branch, parent, slot) {
   const li = el('li');
-  if (branch) li.appendChild(el('div', `edge-label ${branch}`, branch === 'yes' ? 'Yes' : 'No'));
+  if (branch === 'next') li.appendChild(connector('neutral'));
+  else if (branch) li.appendChild(connector(branch, el('div', `edge-label ${branch}`, branch === 'yes' ? 'Yes' : 'No')));
 
   if (!node) {
     li.appendChild(renderEmptySlot(parent, slot));
@@ -161,6 +163,10 @@ function renderBranch(node, branch, parent, slot) {
     const kids = el('ul', 'children');
     kids.appendChild(renderBranch(node.yes, 'yes', node, 'yes'));
     kids.appendChild(renderBranch(node.no, 'no', node, 'no'));
+    li.appendChild(kids);
+  } else if (node.next) {
+    const kids = el('ul', 'children');
+    kids.appendChild(renderBranch(node.next, 'next', node, 'next'));
     li.appendChild(kids);
   }
   return li;
@@ -197,12 +203,21 @@ function renderNode(node, parent, slot) {
         delete node.no;
         save();
         render();
-      }, 'Convert to a final action box'));
+      }, 'Convert to an action box'));
     } else {
+      if (!node.next) {
+        controls.appendChild(button('↓ Next step', null, () => {
+          node.next = { id: uid(), type: 'action', text: '' };
+          save();
+          render();
+        }, 'Add a box that follows this one, with a plain arrow (no Yes/No)'));
+      }
       controls.appendChild(button('⇄ Make question', 'ghost', () => {
+        if (node.next && !confirm('The steps below this box will be moved under its Yes branch. Continue?')) return;
         node.type = 'question';
-        node.yes = null;
+        node.yes = node.next || null;
         node.no = null;
+        delete node.next;
         save();
         render();
       }, 'Convert to a yes/no question'));

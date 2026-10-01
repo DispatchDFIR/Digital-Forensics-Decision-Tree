@@ -12,9 +12,14 @@ A static site (GitHub Pages) backed by Firebase Firestore, with two parts:
 ## Using it
 
 - **Move around**: drag any empty part of the canvas.
+- **Zoom**: the − / + / Fit buttons in the bottom-right corner, Ctrl/⌘ +
+  scroll wheel, trackpad pinch, or two-finger pinch on a phone. Click the
+  percentage to go back to 100%.
 - **Admin editing**: click **Admin login** and sign in with the admin
   Firebase account. Edit controls then appear on the official trees, and
-  changes save for everyone straight away.
+  changes save for everyone straight away. Questions branch into Yes/No;
+  an Action can continue to another box with **↓ Next step** (a plain
+  arrow with no Yes/No).
 - **Mind maps**: open the **Mind Maps** tab, create a map, then use
   **Copy invite link** to share it. Click a box's text to edit it,
   **+ Child** to branch, the dashed **+ label** pill to label a connection,
@@ -67,6 +72,13 @@ service cloud.firestore {
 
 `allow list: if false` is what keeps mind maps private: a map can only be
 opened by someone who already knows its code.
+
+## Releasing changes
+
+GitHub Pages caches files for about 10 minutes. Every script and stylesheet
+reference carries a `?v=N` tag (in `index.html` and in each `import` line in
+`js/`). When you change any of them, bump N everywhere to the same new
+number so visitors don't get a mix of old and new files.
 
 ## Files
 
