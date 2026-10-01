@@ -4,32 +4,94 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <meta name="robots" content="noindex, nofollow">
-<title>Digital Forensics Decision Tree</title>
+<title>DFIR Decision Trees</title>
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🔍</text></svg>">
 <link rel="stylesheet" href="style.css">
 </head>
 <body>
 <header class="topbar">
-  <h1>🔍 Digital Forensics Decision Tree</h1>
-  <div class="toolbar">
-    <button id="btn-add-root" title="Create a brand new tree">New Tree</button>
-    <button id="btn-example" title="Load the example DF triage tree">Load Example</button>
-    <button id="btn-export">Export JSON</button>
-    <label class="file-btn">Import JSON<input type="file" id="btn-import" accept="application/json" hidden></label>
-    <button id="btn-print">Print / PDF</button>
-    <span class="save-indicator" id="save-indicator">Saved</span>
+  <div class="brand">🔍 DFIR Decision Trees</div>
+  <nav class="tabs" role="tablist">
+    <button type="button" id="tab-trees" class="tab active" role="tab">Decision Trees</button>
+    <button type="button" id="tab-maps" class="tab" role="tab">Mind Maps</button>
+  </nav>
+  <div class="account">
+    <span id="save-indicator" class="status" aria-live="polite"></span>
+    <span id="admin-badge" class="badge"></span>
+    <button type="button" id="btn-login">Admin login</button>
+    <button type="button" id="btn-logout" hidden>Sign out</button>
   </div>
 </header>
 
-<p class="help">Click any box's text to edit it. Use <strong>+ Yes</strong> / <strong>+ No</strong> to branch, <strong>✎</strong> to turn a question into a final action (or back), and <strong>✕</strong> to delete a branch. Everything autosaves to this browser. Use <strong>Export JSON</strong> to save your tree permanently (e.g. commit it back into the repo as <code>data.json</code>) so other visitors see your edits too.</p>
+<section id="view-trees" class="view">
+  <div class="subbar">
+    <label class="select-wrap">
+      <span class="sr-only">Choose a decision tree</span>
+      <select id="dt-select"></select>
+    </label>
+    <span id="dt-mode" class="mode-pill">View only</span>
+    <button type="button" id="dt-export">Export JSON</button>
+    <label class="file-btn admin-only">Import JSON<input type="file" id="dt-import" accept="application/json,.json" hidden></label>
+    <button type="button" id="dt-reset" class="admin-only">Reset to starter</button>
+    <button type="button" id="dt-print">Print / PDF</button>
+    <span class="hint">Drag empty space to move around.</span>
+  </div>
+  <div id="dt-canvas" class="canvas"><div id="dt-tree" class="tree"></div></div>
+</section>
 
-<main id="tree-container" class="tree-wrap">
-  <div class="tree" id="tree-root"></div>
-</main>
+<section id="view-maps" class="view" hidden>
+  <div id="mm-home" class="mm-home">
+    <div class="card">
+      <h2>Start a new mind map</h2>
+      <form id="mm-create-form" class="inline-form">
+        <input id="mm-create-name" type="text" maxlength="120" placeholder="Mind map name" aria-label="Mind map name">
+        <button type="submit" class="primary">Create</button>
+      </form>
+      <p class="muted">You'll get a share code and invite link. Anyone you give it to can view and edit that map. There is no public list of mind maps.</p>
+    </div>
+    <div class="card">
+      <h2>Open a shared mind map</h2>
+      <form id="mm-join-form" class="inline-form">
+        <input id="mm-join-code" type="text" placeholder="Share code (e.g. abcde-fghjk) or invite link" aria-label="Share code or invite link" required>
+        <button type="submit" class="primary">Open</button>
+      </form>
+      <p id="mm-join-error" class="error" hidden></p>
+    </div>
+    <div id="mm-recent-card" class="card" hidden>
+      <h2>Recently opened on this device</h2>
+      <ul id="mm-recent" class="recent-list"></ul>
+    </div>
+  </div>
 
-<footer>
-  <p>Static site &middot; no backend &middot; your edits live in this browser's local storage unless exported. Built for digital forensics triage / IR playbooks, but works for any yes/no decision flow.</p>
-</footer>
+  <div id="mm-workspace" class="mm-workspace" hidden>
+    <div class="subbar">
+      <button type="button" id="mm-back">← All mind maps</button>
+      <div id="mm-title-slot" class="mm-title-slot"></div>
+      <span class="share">Code <code id="mm-code"></code></span>
+      <button type="button" id="mm-copy-code">Copy code</button>
+      <button type="button" id="mm-copy-link" class="primary">Copy invite link</button>
+      <button type="button" id="mm-export">Export JSON</button>
+      <label class="file-btn">Import JSON<input type="file" id="mm-import" accept="application/json,.json" hidden></label>
+      <button type="button" id="mm-print">Print / PDF</button>
+    </div>
+    <div id="mm-canvas" class="canvas"><div id="mm-tree" class="tree"></div></div>
+  </div>
+</section>
 
-<script src="script.js"></script>
+<dialog id="login-dialog">
+  <form id="login-form">
+    <h2>Admin login</h2>
+    <p class="muted">Only the admin account can edit the official decision trees.</p>
+    <label>Email<input type="email" id="login-email" autocomplete="username" required></label>
+    <label>Password<input type="password" id="login-password" autocomplete="current-password" required></label>
+    <p id="login-error" class="error" hidden></p>
+    <div class="dialog-actions">
+      <button type="button" id="login-cancel">Cancel</button>
+      <button type="submit" id="login-submit" class="primary">Sign in</button>
+    </div>
+  </form>
+</dialog>
+
+<script type="module" src="js/main.js"></script>
 </body>
 </html>
