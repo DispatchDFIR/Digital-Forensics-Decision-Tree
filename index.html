@@ -1,0 +1,34 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Digital Forensics Decision Tree</title>
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<header class="topbar">
+  <h1>🔍 Digital Forensics Decision Tree</h1>
+  <div class="toolbar">
+    <button id="btn-add-root" title="Create a brand new tree">New Tree</button>
+    <button id="btn-example" title="Load the example DF triage tree">Load Example</button>
+    <button id="btn-export">Export JSON</button>
+    <label class="file-btn">Import JSON<input type="file" id="btn-import" accept="application/json" hidden></label>
+    <button id="btn-print">Print / PDF</button>
+    <span class="save-indicator" id="save-indicator">Saved</span>
+  </div>
+</header>
+
+<p class="help">Click any box's text to edit it. Use <strong>+ Yes</strong> / <strong>+ No</strong> to branch, <strong>✎</strong> to turn a question into a final action (or back), and <strong>✕</strong> to delete a branch. Everything autosaves to this browser. Use <strong>Export JSON</strong> to save your tree permanently (e.g. commit it back into the repo as <code>data.json</code>) so other visitors see your edits too.</p>
+
+<main id="tree-container" class="tree-wrap">
+  <div class="tree" id="tree-root"></div>
+</main>
+
+<footer>
+  <p>Static site &middot; no backend &middot; your edits live in this browser's local storage unless exported. Built for digital forensics triage / IR playbooks, but works for any yes/no decision flow.</p>
+</footer>
+
+<script src="script.js"></script>
+</body>
+</html>
