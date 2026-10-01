@@ -39,9 +39,17 @@ for you. To make a change permanent for all visitors:
 4. Save. Your site will be live at
    `https://<your-username>.github.io/<repo-name>/` within a minute or two.
 
+> **Note:** GitHub Pages on the Free plan requires the repository to be
+> **public** (Pages for private repos needs GitHub Pro/Team/Enterprise). If
+> you want the page reachable only by link and not indexed by search
+> engines, this repo already ships `robots.txt` and a `noindex` meta tag in
+> `index.html` — the repo code itself will still be visible to anyone who
+> finds it on GitHub, but the page won't show up in search results.
+
 ## Files
 
 - `index.html` — page structure and toolbar
 - `style.css` — dark/light theme + the CSS-only tree/connector layout
 - `script.js` — tree data model, rendering, editing, import/export, autosave
 - `data.json` — the committed tree content (edit via Export JSON, above)
+- `robots.txt` — tells search engines not to index the published page
